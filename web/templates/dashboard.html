@@ -1,0 +1,430 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · Drohnen-Monitor{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Dashboard</h2>
+
+<div class="row g-3 mb-4">
+    {% for key, item in services.items() %}
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-secondary small">{{ item.service }}</div>
+                <div class="fs-4 fw-semibold">
+                    <span id="svc-dot-{{ key }}" class="status-dot {{ 'online' if item.state == 'active' else 'offline' }}"></span>
+                    <span id="svc-state-{{ key }}">{{ item.state }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-2">
+        <div class="card metric-card"><div class="card-body">
+            <div id="metric-wifi-clients" class="metric">{{ wifi.clients }}</div>
+            <div class="text-secondary">WLAN Clients</div>
+        </div></div>
+    </div>
+
+    <div class="col-6 col-xl-2">
+        <div class="card metric-card"><div class="card-body">
+            <div id="metric-wifi-notable" class="metric">{{ wifi.notable }}</div>
+            <div class="text-secondary">Observe+</div>
+        </div></div>
+    </div>
+
+    <div class="col-6 col-xl-2">
+        <div class="card metric-card"><div class="card-body">
+            <div id="metric-wifi-aps" class="metric">{{ wifi.aps }}</div>
+            <div class="text-secondary">APs Historie</div>
+        </div></div>
+    </div>
+
+    <div class="col-6 col-xl-2">
+        <div class="card metric-card"><div class="card-body">
+            <div id="metric-sdr-events" class="metric">{{ sdr.events_total }}</div>
+            <div class="text-secondary">RF Events</div>
+        </div></div>
+    </div>
+
+    <div class="col-6 col-xl-2">
+        <div class="card metric-card"><div class="card-body">
+            <div id="metric-sdr-persistent" class="metric">{{ sdr.persistent_total }}</div>
+            <div class="text-secondary">RF Persistent</div>
+        </div></div>
+    </div>
+
+    <div class="col-6 col-xl-2">
+        <div class="card metric-card remote-id-card"><div class="card-body">
+            <div id="metric-remote-id" class="metric">{{ wifi.remote_id }}</div>
+            <div class="text-secondary">Remote ID</div>
+        </div></div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">RF Candidates</span>
+        <span class="small text-secondary" id="candidate-last">{{ candidate_summary.last_timestamp or "—" }}</span>
+    </div>
+    <div class="card-body pb-2">
+        <div class="row g-3 mb-3">
+            <div class="col-6 col-md-3"><div class="text-secondary small">Candidate</div><div class="fs-4 fw-semibold" id="candidate-count-candidate">{{ candidate_summary.candidate }}</div></div>
+            <div class="col-6 col-md-3"><div class="text-secondary small">Interesting</div><div class="fs-4 fw-semibold" id="candidate-count-interesting">{{ candidate_summary.interesting }}</div></div>
+            <div class="col-6 col-md-3"><div class="text-secondary small">Observe</div><div class="fs-4 fw-semibold" id="candidate-count-observe">{{ candidate_summary.observe }}</div></div>
+            <div class="col-6 col-md-3"><div class="text-secondary small">Gesamt</div><div class="fs-4 fw-semibold" id="candidate-count-total">{{ candidate_summary.total }}</div></div>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+            <thead><tr><th>Zeit</th><th>Level</th><th>Score</th><th>Band</th><th>MHz</th><th>CH</th><th>Frames</th><th>UX7</th><th>AP</th></tr></thead>
+            <tbody id="dashboard-candidates">
+            {% for row in candidates %}
+                <tr>
+                    <td class="small">{{ row.get("timestamp","") }}</td>
+                    <td><span class="badge class-{{ row.get("candidate_level","observe") }}">{{ row.get("candidate_level","") }}</span></td>
+                    <td class="fw-semibold">{{ row.get("candidate_score","") }}</td>
+                    <td>{{ row.get("band","") }}</td>
+                    <td>{{ "%.3f"|format(row.get("peak_mhz",0)) }}</td>
+                    <td>{{ row.get("wifi_channel","") }}</td>
+                    <td>{{ row.get("wifi_frames","") }}</td>
+                    <td>{{ row.get("unifi_clients_channel","") }}</td>
+                    <td>{{ row.get("unifi_ap_radios_channel","") }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="9" class="text-secondary p-3">Noch keine persistierten RF-Kandidaten.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">Top Observe+ Clients</span>
+        <a href="/wifi" class="small text-decoration-none">Alle WLAN-Clients</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Klasse</th>
+                    <th>Score</th>
+                    <th>MAC</th>
+                    <th>Hersteller</th>
+                    <th>RSSI</th>
+                    <th>Kanal</th>
+                    <th>Seen</th>
+                    <th>Letzte Sichtung</th>
+                </tr>
+            </thead>
+            <tbody id="dashboard-top-observe">
+            {% for row in top_observe %}
+                <tr>
+                    <td>
+                        <span class="badge class-{{ row.get('classification','observe') }}">
+                            {{ row.get('classification','') }}
+                        </span>
+                    </td>
+                    <td class="fw-semibold">{{ row.get('score','') }}</td>
+                    <td class="mono">{{ row.get('mac','') }}</td>
+                    <td>{{ row.get('manufacturer','') or '—' }}</td>
+                    <td>{{ row.get('rssi_best','') }}</td>
+                    <td>{{ row.get('channel','') }}</td>
+                    <td>{{ row.get('seen_count','') }}</td>
+                    <td class="small">{{ row.get('last_seen','') }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="8" class="text-secondary p-3">
+                        Keine Observe+-Clients vorhanden.
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-12 col-xl-7">
+        <div class="card">
+            <div class="card-header fw-semibold">Letzte Korrelationen</div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Zeit</th>
+                            <th>Klasse</th>
+                            <th>Score</th>
+                            <th>WLAN</th>
+                            <th>RSSI</th>
+                            <th>SDR</th>
+                            <th>MHz</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboard-correlations">
+                    {% for row in correlations %}
+                        {% set w = row.get('wifi', {}) %}
+                        {% set s = row.get('sdr', {}) %}
+                        <tr>
+                            <td>{{ row.get('timestamp', '') }}</td>
+                            <td><span class="badge class-{{ row.get('classification','low') }}">{{ row.get('classification','') }}</span></td>
+                            <td>{{ row.get('correlation_score','') }}</td>
+                            <td class="mono">{{ w.get('identifier','') }}</td>
+                            <td>{{ w.get('rssi_best','') }}</td>
+                            <td>{{ s.get('sensor','') }}</td>
+                            <td>{{ s.get('strongest_frequency_mhz','') }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="7" class="text-secondary p-3">Keine Korrelationen vorhanden.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-5">
+        <div class="card">
+            <div class="card-header fw-semibold">Remote ID</div>
+            <div class="card-body" id="dashboard-remote-id">
+                {% if remote_id %}
+                    {% for row in remote_id[:10] %}
+                    <div class="event-box mb-2">
+                        <div class="fw-semibold mono">{{ row.get('uas_id') or row.get('transmitter') or '?' }}</div>
+                        <div class="small text-secondary">
+                            {{ row.get('timestamp','') }} · RSSI {{ row.get('rssi','') }} · CH {{ row.get('channel','') }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-secondary">Noch keine validen Remote-ID-Ereignisse.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block scripts_extra %}
+<script>
+(() => {
+    const REFRESH_MS = 10000;
+
+    const esc = (value) => {
+        const div = document.createElement("div");
+        div.textContent = value == null ? "" : String(value);
+        return div.innerHTML;
+    };
+
+    const fmt = (value) => value == null ? "" : value;
+
+    async function getJson(url) {
+        const response = await fetch(url, {
+            cache: "no-store",
+            headers: {"Accept": "application/json"}
+        });
+
+        if (!response.ok) {
+            throw new Error(`${url}: HTTP ${response.status}`);
+        }
+
+        return response.json();
+    }
+
+    function updateServices(data) {
+        Object.entries(data).forEach(([key, item]) => {
+            const state = document.getElementById(`svc-state-${key}`);
+            const dot = document.getElementById(`svc-dot-${key}`);
+
+            if (state) {
+                state.textContent = item.state || "unknown";
+            }
+
+            if (dot) {
+                dot.classList.toggle("online", item.state === "active");
+                dot.classList.toggle("offline", item.state !== "active");
+            }
+        });
+    }
+
+    function updateMetrics(wifi, sdr) {
+        const values = {
+            "metric-wifi-clients": wifi.clients,
+            "metric-wifi-notable": wifi.notable,
+            "metric-wifi-aps": wifi.aps,
+            "metric-sdr-events": sdr.events_total,
+            "metric-sdr-persistent": sdr.persistent_total,
+            "metric-remote-id": wifi.remote_id
+        };
+
+        Object.entries(values).forEach(([id, value]) => {
+            const node = document.getElementById(id);
+            if (node) node.textContent = value ?? 0;
+        });
+    }
+
+    function classBadge(value) {
+        const cls = value || "low";
+        return `<span class="badge class-${esc(cls)}">${esc(cls)}</span>`;
+    }
+
+    function updateCandidates(data) {
+        const summary = data.summary || {};
+        const rows = data.rows || [];
+        const values = {
+            "candidate-count-candidate": summary.candidate,
+            "candidate-count-interesting": summary.interesting,
+            "candidate-count-observe": summary.observe,
+            "candidate-count-total": summary.total
+        };
+        Object.entries(values).forEach(([id, value]) => {
+            const node = document.getElementById(id);
+            if (node) node.textContent = value ?? 0;
+        });
+        const last = document.getElementById("candidate-last");
+        if (last) last.textContent = summary.last_timestamp || "—";
+        const tbody = document.getElementById("dashboard-candidates");
+        if (!tbody) return;
+        if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-secondary p-3">Noch keine persistierten RF-Kandidaten.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = rows.map(row => {
+            return "<tr>" +
+                "<td class=\"small\">" + esc(fmt(row.timestamp)) + "</td>" +
+                "<td>" + classBadge(row.candidate_level || "observe") + "</td>" +
+                "<td class=\"fw-semibold\">" + esc(fmt(row.candidate_score)) + "</td>" +
+                "<td>" + esc(fmt(row.band)) + "</td>" +
+                "<td>" + esc(row.peak_mhz == null ? "" : Number(row.peak_mhz).toFixed(3)) + "</td>" +
+                "<td>" + esc(fmt(row.wifi_channel)) + "</td>" +
+                "<td>" + esc(fmt(row.wifi_frames)) + "</td>" +
+                "<td>" + esc(fmt(row.unifi_clients_channel)) + "</td>" +
+                "<td>" + esc(fmt(row.unifi_ap_radios_channel)) + "</td>" +
+                "</tr>";
+        }).join("");
+    }
+
+    function updateTopObserve(rows) {
+        const tbody = document.getElementById("dashboard-top-observe");
+        if (!tbody) return;
+
+        if (!rows.length) {
+            tbody.innerHTML =
+                '<tr><td colspan="8" class="text-secondary p-3">Keine Observe+-Clients vorhanden.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = rows.map(row => {
+            const manufacturer = row.manufacturer || "—";
+
+            return `
+                <tr>
+                    <td>${classBadge(row.classification || "observe")}</td>
+                    <td class="fw-semibold">${esc(fmt(row.score))}</td>
+                    <td class="mono">${esc(fmt(row.mac))}</td>
+                    <td>${esc(manufacturer)}</td>
+                    <td>${esc(fmt(row.rssi_best))}</td>
+                    <td>${esc(fmt(row.channel))}</td>
+                    <td>${esc(fmt(row.seen_count))}</td>
+                    <td class="small">${esc(fmt(row.last_seen))}</td>
+                </tr>
+            `;
+        }).join("");
+    }
+
+    function updateCorrelations(rows) {
+        const tbody = document.getElementById("dashboard-correlations");
+        if (!tbody) return;
+
+        if (!rows.length) {
+            tbody.innerHTML =
+                '<tr><td colspan="7" class="text-secondary p-3">Keine Korrelationen vorhanden.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = rows.map(row => {
+            const w = row.wifi || {};
+            const s = row.sdr || {};
+
+            return `
+                <tr>
+                    <td>${esc(fmt(row.timestamp))}</td>
+                    <td>${classBadge(row.classification)}</td>
+                    <td>${esc(fmt(row.correlation_score))}</td>
+                    <td class="mono">${esc(fmt(w.identifier))}</td>
+                    <td>${esc(fmt(w.rssi_best))}</td>
+                    <td>${esc(fmt(s.sensor))}</td>
+                    <td>${esc(fmt(s.strongest_frequency_mhz))}</td>
+                </tr>
+            `;
+        }).join("");
+    }
+
+    function updateRemoteId(rows) {
+        const box = document.getElementById("dashboard-remote-id");
+        if (!box) return;
+
+        if (!rows.length) {
+            box.innerHTML =
+                '<div class="text-secondary">Noch keine validen Remote-ID-Ereignisse.</div>';
+            return;
+        }
+
+        box.innerHTML = rows.slice(0, 10).map(row => {
+            const id = row.uas_id || row.transmitter || "?";
+
+            return `
+                <div class="event-box mb-2">
+                    <div class="fw-semibold mono">${esc(id)}</div>
+                    <div class="small text-secondary">
+                        ${esc(fmt(row.timestamp))} ·
+                        RSSI ${esc(fmt(row.rssi))} ·
+                        CH ${esc(fmt(row.channel))}
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    async function refreshDashboard() {
+        try {
+            const [
+                services,
+                wifi,
+                sdr,
+                topObserve,
+                correlations,
+                remoteId,
+                candidates
+            ] = await Promise.all([
+                getJson("/api/status"),
+                getJson("/api/wifi-summary"),
+                getJson("/api/sdr-summary"),
+                getJson("/api/wifi-notable"),
+                getJson("/api/correlations"),
+                getJson("/api/remote-id"),
+                getJson("/api/candidates")
+            ]);
+
+            updateServices(services);
+            updateMetrics(wifi, sdr);
+            updateTopObserve(topObserve);
+            updateCorrelations(correlations);
+            updateRemoteId(remoteId);
+            updateCandidates(candidates);
+
+            document.body.dataset.lastRefresh = new Date().toISOString();
+        } catch (error) {
+            console.error("Dashboard refresh failed:", error);
+        }
+    }
+
+    window.setInterval(refreshDashboard, REFRESH_MS);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}SDR · Drohnen-Monitor{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">SDR</h2>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card metric-card"><div class="card-body">
+            <div class="metric">{{ summary.events_total }}</div>
+            <div class="text-secondary">RF Event-Sweeps</div>
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card metric-card"><div class="card-body">
+            <div class="metric">{{ summary.persistent_total }}</div>
+            <div class="text-secondary">Persistent gelernt</div>
+        </div></div>
+    </div>
+</div>
+
+{% for sensor, rows in persistent.items() %}
+<div class="card mb-4">
+    <div class="card-header fw-semibold">Persistent {{ sensor }}</div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>MHz</th><th>First Seen</th><th>Last Seen</th><th>Sweeps</th><th>Max Δ dB</th><th>Learned At</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td>{{ "%.3f"|format(row.get('center_frequency_mhz',0)|float) }}</td>
+                    <td>{{ row.get('first_seen','') }}</td>
+                    <td>{{ row.get('last_seen','') }}</td>
+                    <td>{{ row.get('seen_sweeps','') }}</td>
+                    <td>{{ row.get('max_peak_delta_db','') }}</td>
+                    <td>{{ row.get('learned_at','') }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="6" class="text-secondary p-3">Keine gelernten Frequenzen.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endfor %}
+
+<div class="card">
+    <div class="card-header fw-semibold">Letzte RF-Ereignisse</div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+            <thead>
+                <tr><th>Zeit</th><th>Sensor</th><th>Signale</th><th>Stärkste MHz</th><th>Max Δ dB</th></tr>
+            </thead>
+            <tbody>
+            {% for row in events %}
+                <tr>
+                    <td>{{ row.get('timestamp','') }}</td>
+                    <td>{{ row.get('sensor','') }}</td>
+                    <td>{{ row.get('signal_count','') }}</td>
+                    <td>{{ row.get('strongest_frequency_mhz','') }}</td>
+                    <td>{{ row.get('max_peak_delta_db','') }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="5" class="text-secondary p-3">Keine RF-Ereignisse.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

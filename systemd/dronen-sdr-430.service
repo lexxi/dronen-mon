@@ -1,0 +1,23 @@
+[Unit]
+Description=Drohnen-Monitor SDR 430-450 MHz
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/dronen-mon
+
+ExecStart=/opt/dronen-mon/bin/sdr_monitor.py \
+ --usb-path ${SDR_430_USB_PATH} \
+ --name 430-450 \
+ --range 430M:450M:25k \
+ --baseline sdr_baseline_430_450_peaks.csv \
+ --duration 2m \
+ --interval 5 \
+ --sleep 5 \
+ --event-delta 4
+
+Restart=always
+RestartSec=10
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target

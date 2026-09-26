@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Korrelationen · Drohnen-Monitor{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Korrelationen</h2>
+
+<div class="table-responsive">
+<table class="table table-sm table-hover">
+    <thead>
+        <tr>
+            <th>Zeit</th><th>Klasse</th><th>Score</th>
+            <th>WLAN</th><th>RSSI</th><th>WiFi Score</th>
+            <th>SDR</th><th>MHz</th><th>Δ dB</th><th>Δt</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for row in correlations %}
+        {% set w = row.get('wifi', {}) %}
+        {% set s = row.get('sdr', {}) %}
+        <tr>
+            <td>{{ row.get('timestamp','') }}</td>
+            <td><span class="badge class-{{ row.get('classification','low') }}">{{ row.get('classification','') }}</span></td>
+            <td>{{ row.get('correlation_score','') }}</td>
+            <td class="mono">{{ w.get('identifier','') }}</td>
+            <td>{{ w.get('rssi_best','') }}</td>
+            <td>{{ w.get('score','') }}</td>
+            <td>{{ s.get('sensor','') }}</td>
+            <td>{{ s.get('strongest_frequency_mhz','') }}</td>
+            <td>{{ s.get('max_peak_delta_db','') }}</td>
+            <td>{{ row.get('time_difference_seconds','') }}</td>
+        </tr>
+    {% else %}
+        <tr><td colspan="10" class="text-secondary p-3">Keine Korrelationen vorhanden.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

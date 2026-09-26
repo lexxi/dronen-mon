@@ -1,0 +1,8 @@
+[Unit]
+Description=Drohnen-Monitor Pluto/WLAN Candidate Correlator
+After=dronen-pluto.service dronen-wifi.service
+Wants=dronen-pluto.service dronen-wifi.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/dronen-mon/bin/pluto_wifi_correlate.py

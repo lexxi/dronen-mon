@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Remote ID · Drohnen-Monitor{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Remote ID</h2>
+
+{% if events %}
+<div class="table-responsive">
+<table class="table table-sm table-hover">
+    <thead>
+        <tr>
+            <th>Zeit</th><th>UAS ID</th><th>TX</th><th>RSSI</th><th>CH</th>
+            <th>Lat</th><th>Lon</th><th>Höhe</th><th>Speed</th><th>Heading</th><th>Operator ID</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for row in events %}
+        <tr>
+            <td>{{ row.get('timestamp','') }}</td>
+            <td class="mono">{{ row.get('uas_id','') }}</td>
+            <td class="mono">{{ row.get('transmitter','') }}</td>
+            <td>{{ row.get('rssi','') }}</td>
+            <td>{{ row.get('channel','') }}</td>
+            <td>{{ row.get('latitude','') }}</td>
+            <td>{{ row.get('longitude','') }}</td>
+            <td>{{ row.get('geodetic_altitude_m','') }}</td>
+            <td>{{ row.get('speed_mps','') }}</td>
+            <td>{{ row.get('heading_deg','') }}</td>
+            <td class="mono">{{ row.get('operator_id','') }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+{% else %}
+<div class="alert alert-secondary">
+    Noch keine validen Remote-ID-Ereignisse vorhanden.
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,12 @@
+[Unit]
+Description=Drohnen-Monitor Pluto/WLAN Candidate Correlator Timer
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+AccuracySec=30s
+Persistent=true
+Unit=dronen-pluto-correlate.service
+
+[Install]
+WantedBy=timers.target

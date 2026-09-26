@@ -1,0 +1,10 @@
+# Drohnen-Monitor local hardware configuration
+# Copy to /etc/default/dronen-mon and adapt to your system.
+
+# Monitor-mode capable Wi-Fi interface (check with: ip link)
+DRONEN_WIFI_INTERFACE=wlan0
+
+# Stable USB topology paths for the two RTL2832U receivers.
+# Check with: ls -l /sys/bus/usb/devices/ and lsusb
+SDR_430_USB_PATH=1-1
+SDR_860_USB_PATH=2-1

@@ -1,0 +1,33 @@
+# Laufzeitdaten
+data/
+
+# Alte lokale Archive – Git übernimmt ab jetzt die Historie
+archive/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Backups / temporär
+*.bak
+*.bak-*
+*.old
+*.orig
+*.tmp
+*.log
+*.raw
+*.iq
+
+# Messdaten
+*.jsonl
+
+# Lokale / sensible Konfiguration
+config/unifi.json
+config/unifi_api.key
+config/known_devices.csv
+config/unifi_clients.csv
+config/ignore_bssid.txt
+config/ignore_prefixes.txt
+
+web/venv/

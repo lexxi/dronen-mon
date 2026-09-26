@@ -1,0 +1,23 @@
+[Unit]
+Description=Drohnen-Monitor SDR 860-930 MHz
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/dronen-mon
+
+ExecStart=/opt/dronen-mon/bin/sdr_monitor.py \
+ --usb-path ${SDR_860_USB_PATH} \
+ --name 860-930 \
+ --range 860M:930M:100k \
+ --baseline sdr_baseline_860_930_peaks.csv \
+ --duration 2m \
+ --interval 5 \
+ --sleep 5 \
+ --event-delta 4
+
+Restart=always
+RestartSec=10
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target

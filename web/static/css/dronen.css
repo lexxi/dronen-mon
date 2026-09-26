@@ -1,0 +1,95 @@
+body {
+    background: #f4f6f8;
+}
+
+.navbar {
+    background: #ffffff;
+}
+
+.card {
+    border: 1px solid #dde2e7;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+
+.metric-card .metric {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: .4rem;
+}
+
+.status-dot {
+    display: inline-block;
+    width: .65rem;
+    height: .65rem;
+    border-radius: 50%;
+    margin-right: .35rem;
+}
+
+.status-dot.online {
+    background: #198754;
+}
+
+.status-dot.offline {
+    background: #dc3545;
+}
+
+.mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.class-background,
+.class-low {
+    background: #6c757d;
+}
+
+.class-observe {
+    background: #0d6efd;
+}
+
+.class-interesting,
+.class-medium {
+    background: #fd7e14;
+}
+
+.class-candidate,
+.class-high {
+    background: #dc3545;
+}
+
+.class-baseline {
+    background: #198754;
+}
+
+.class-new {
+    background: #0d6efd;
+}
+
+.remote-id-card {
+    border-width: 2px;
+}
+
+.filter-select {
+    max-width: 220px;
+}
+
+table {
+    font-size: .88rem;
+}
+
+.event-box {
+    border: 1px solid #dde2e7;
+    border-radius: .4rem;
+    padding: .65rem;
+    background: #fff;
+}
+
+
+.documentation-pre {
+    white-space: pre-wrap;
+    font-size: .9rem;
+    background: #f8f9fa;
+    border: 1px solid #e2e6ea;
+    border-radius: .4rem;
+    padding: 1rem;
+}

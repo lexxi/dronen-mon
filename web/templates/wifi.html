@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}WLAN · Drohnen-Monitor{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">WLAN</h2>
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <button class="nav-link active" data-tab-target="clients">Clients</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-tab-target="aps">Access Points</button>
+    </li>
+</ul>
+
+<div id="tab-clients">
+    <div class="d-flex gap-2 mb-3">
+        <input id="clientSearch" class="form-control" placeholder="MAC / Hersteller suchen">
+        <select id="clientClass" class="form-select filter-select">
+            <option value="">Alle Klassen</option>
+            <option value="observe">Observe+</option>
+            <option value="interesting">Interesting+</option>
+            <option value="candidate">Candidate</option>
+        </select>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-sm table-hover" id="clientTable">
+            <thead>
+                <tr>
+                    <th>MAC</th><th>Hersteller</th><th>BSSID</th><th>RSSI</th>
+                    <th>ΔRSSI</th><th>Frames</th><th>CH</th><th>Score</th><th>Klasse</th><th>Last Seen</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for row in clients %}
+                <tr data-class="{{ row.get('classification','') }}">
+                    <td class="mono">{{ row.get('mac','') }}</td>
+                    <td>{{ row.get('manufacturer','') }}</td>
+                    <td class="mono">{{ row.get('associated_bssid','') }}</td>
+                    <td>{{ row.get('rssi_best','') }}</td>
+                    <td>{{ row.get('rssi_range_db','') }}</td>
+                    <td>{{ row.get('frames','') }}</td>
+                    <td>{{ row.get('channel','') }}</td>
+                    <td>{{ row.get('score','') }}</td>
+                    <td><span class="badge class-{{ row.get('classification','background') }}">{{ row.get('classification','') }}</span></td>
+                    <td>{{ row.get('last_seen','') }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="tab-aps" class="d-none">
+    <input id="apSearch" class="form-control mb-3" placeholder="BSSID / SSID / Hersteller suchen">
+
+    <div class="table-responsive">
+        <table class="table table-sm table-hover" id="apTable">
+            <thead>
+                <tr>
+                    <th>BSSID</th><th>SSID</th><th>Hersteller</th><th>Status</th>
+                    <th>First Seen</th><th>Last Seen</th><th>Seen</th><th>Runs</th>
+                    <th>RSSI best</th><th>CH</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for row in aps %}
+                <tr>
+                    <td class="mono">{{ row.get('bssid','') }}</td>
+                    <td>{{ row.get('ssid','') }}</td>
+                    <td>{{ row.get('manufacturer','') }}</td>
+                    <td>
+                        {% if row.get('baseline_bool') %}
+                            <span class="badge class-baseline">baseline</span>
+                        {% else %}
+                            <span class="badge class-new">history</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ row.get('first_seen','') }}</td>
+                    <td>{{ row.get('last_seen','') }}</td>
+                    <td>{{ row.get('seen_count') or row.get('beacons','') }}</td>
+                    <td>{{ row.get('runs_seen','') }}</td>
+                    <td>{{ row.get('rssi_best_seen') or row.get('rssi_best','') }}</td>
+                    <td>{{ row.get('last_channel') or row.get('channel','') }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,13 @@
+[Unit]
+Description=Drohnen-Monitor History Cleanup
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/systemctl stop dronen-pluto-correlate.timer
+ExecStartPre=/bin/systemctl stop dronen-pluto.service dronen-wifi.service
+ExecStart=/usr/bin/python3 /opt/dronen-mon/bin/cleanup_history.py
+ExecStopPost=/bin/systemctl start dronen-pluto.service dronen-wifi.service
+ExecStopPost=/bin/systemctl start dronen-pluto-correlate.timer
+Nice=10
+IOSchedulingClass=idle

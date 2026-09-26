@@ -1,0 +1,18 @@
+[Unit]
+Description=Drohnen-Monitor WLAN SDR Event Correlator
+After=dronen-wifi.service dronen-sdr-430.service dronen-sdr-860.service
+Wants=dronen-wifi.service dronen-sdr-430.service dronen-sdr-860.service
+
+[Service]
+Type=simple
+
+ExecStart=/opt/dronen-mon/bin/event_correlator.py \
+ --window 180 \
+ --retention 600 \
+ --min-wifi-rssi -75
+
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

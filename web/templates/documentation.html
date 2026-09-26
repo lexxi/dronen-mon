@@ -1,0 +1,515 @@
+{% extends "base.html" %}
+{% block title %}Dokumentation · Drohnen-Monitor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+    <div>
+        <h2 class="mb-1">Dokumentation</h2>
+        <div class="text-secondary">Technischer Stand des passiven Drohnen-Monitorings · 24.09.2026</div>
+    </div>
+
+    <div class="text-end">
+        <div class="small text-secondary mb-1">Komponenten-Versionen</div>
+        <div class="d-flex flex-wrap justify-content-end gap-1">
+            {% for component in component_versions %}
+                <span class="badge class-baseline">
+                    {{ component.name }} V{{ component.version }}
+                </span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-secondary">
+    <strong>Ziel:</strong>
+    Passive Erkennung und Bewertung auffälliger Funkaktivität im Umfeld über WLAN,
+    zwei SDR-Sensorbereiche und Korrelation. Das System sendet nicht aktiv und führt
+    keine Stör-, Deauth- oder Abwehrmaßnahmen aus.
+</div>
+
+<div class="row g-4">
+
+    <div class="col-12 col-xl-6">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">1. Plattform & Hardware</div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr><th>Host</th><td class="mono">dronen-mon</td></tr>
+                        <tr><th>System</th><td>Fujitsu Esprimo Q910, Intel i5-6500T</td></tr>
+                        <tr><th>OS</th><td>Debian GNU/Linux 13 (trixie)</td></tr>
+                        <tr><th>WLAN</th><td>Realtek RTL88x2BU / rtw88_8822bu</td></tr>
+                        <tr><th>WLAN Interface</th><td class="mono"><monitor-interface></td></tr>
+                        <tr><th>SDR 1</th><td>RTL2832U + R820T · 430–450 MHz · USB-Pfad mit Bus-Fallback</td></tr>
+                        <tr><th>SDR 2</th><td>RTL2832U + R820T · 860–930 MHz · USB-Pfad mit Bus-Fallback</td></tr>
+                        <tr><th>Wideband SDR</th><td>ADALM-Pluto Rev.C · AD9361-Modus · 2,4 GHz und 5,8 GHz</td></tr>
+                        <tr><th>Regulatory Domain</th><td><span class="mono">00 / DFS-UNSET</span>; passive 5-GHz-Kanäle 149/153/157/161/165 vom Adapter unterstützt</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">2. Services</div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr><th>Service</th><th>Aufgabe</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="mono">dronen-wifi</td><td>WLAN Monitor Mode, AP-/Client-Erkennung, Remote ID, dynamische Known-Clients</td></tr>
+                        <tr><td class="mono">dronen-sdr-430</td><td>430–450 MHz Sweep + Baseline/Persistent Learning</td></tr>
+                        <tr><td class="mono">dronen-sdr-860</td><td>860–930 MHz Sweep + Baseline/Persistent Learning</td></tr>
+                        <tr><td class="mono">dronen-pluto</td><td>Passiver ADALM-Pluto-Scan in 2,4 GHz und 5,8 GHz</td></tr>
+                        <tr><td class="mono">dronen-pluto-correlate.timer</td><td>Startet alle 15 Minuten die Pluto/WLAN-Korrelation V2.6</td></tr>
+                        <tr><td class="mono">dronen-correlator</td><td>Zeitliche WLAN/RTL-SDR-Korrelation</td></tr>
+                        <tr><td class="mono">dronen-history-cleanup.timer</td><td>Tägliche Retention/Archivierung der Rohdaten um 03:40 Uhr</td></tr>
+                        <tr><td class="mono">dronen-web</td><td>Read-only Flask-Dashboard auf Port 8080</td></tr>
+                        <tr><td class="mono">dronen-unifi-import.timer</td><td>Startet alle 5 Minuten den Import der aktuell verbundenen UniFi-WLAN-Clients und AP-Radio-Kontexte</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header fw-semibold">3. Datenfluss</div>
+            <div class="card-body">
+<pre class="mb-0 mono documentation-pre">UniFi Express 7 (<local-ip>)
+    │
+    └── Network API / Wireless Clients
+            │
+            ▼
+    config/unifi_clients.csv
+            │
+            └──────────────┐
+                           ▼
+known_devices.csv ─────► WLAN Monitor Mode
+                           │
+                           ├── APs ─────────────► data/wifi/aps.csv
+                           │                      data/wifi/ap_history.csv
+                           │
+                           ├── Clients ─────────► data/wifi/clients.csv
+                           │                      data/wifi/client_history.csv
+                           │
+                           ├── WLAN Events ─────► data/wifi/wifi_events.jsonl
+                           │
+                           ├── Channel Activity ─► data/wifi/channel_activity.jsonl
+                           │                       inkl. 0-Frame-Kanalbesuche
+                           │
+                           └── Remote ID Decoder ─► remote_id_detected
+                                                    │
+                                                    ▼
+SDR 430–450 ─► Baseline ─► Persistent Learning ───┐
+                                                  ├──► Event Correlator
+SDR 860–930 ─► Baseline ─► Persistent Learning ───┘         │
+                                                            ▼
+                                        data/correlation/correlation_events.jsonl
+
+ADALM-Pluto ─► 2,4/5,8-GHz FFT-Peaks ─► data/pluto/events/pluto_rf.jsonl
+                                         │
+WLAN Channel Activity ────────────────────┘
+                                         ▼
+                              pluto_wifi_correlate.py V2.6
+                              72h Rolling Window +
+                              Hybrid-/Window-P99 +
+                              WLAN/UniFi-Client/AP-Kontext +
+                              Background-/Region-Erkennung
+                                         │
+                                         ├──► data/pluto/candidates_current.json
+                                         │     aktuelle Observe+-Treffer
+                                         │
+                                         └──► data/pluto/candidates.jsonl
+                                               langfristige Historie
+
+History Cleanup (täglich 03:40)
+    ├── Pluto RF              14 Tage aktiv
+    ├── WLAN Channel Activity 14 Tage aktiv
+    ├── UniFi History         30 Tage aktiv
+    └── ältere Rohdaten       gzip-Archiv, 30 Tage
+
+Alle Daten werden von der Flask-GUI nur gelesen.</pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">4. WLAN-Erkennung</div>
+            <div class="card-body">
+                <p>
+                    Der WLAN-Sensor arbeitet im Monitor Mode und rotiert derzeit über
+                    die Kanäle <span class="mono">1, 6, 11, 36, 40, 44, 48, 149, 153, 157, 161, 165</span>.
+                </p>
+
+                <h6>Scoring</h6>
+                <table class="table table-sm">
+                    <tbody>
+                        <tr><td>0–2</td><td><span class="badge class-background">background</span></td></tr>
+                        <tr><td>3–4</td><td><span class="badge class-observe">observe</span></td></tr>
+                        <tr><td>5–6</td><td><span class="badge class-interesting">interesting</span></td></tr>
+                        <tr><td>≥7</td><td><span class="badge class-candidate">candidate</span></td></tr>
+                    </tbody>
+                </table>
+
+                <h6>Wichtige Erkenntnisse</h6>
+                <ul class="mb-0">
+                    <li>Randomisierte/lokal administrierte MACs erzeugen viel Hintergrundrauschen und werden nicht fälschlich einem Hersteller-OUI zugeordnet.</li>
+                    <li>Eigene Geräte werden über <span class="mono">known_devices.csv</span> ausgeschlossen.</li>
+                    <li>Eigene/benachbarte Infrastruktur kann zusätzlich über BSSID/Prefix ignoriert werden.</li>
+                    <li>Sehr schwache Clients unter −80 dBm werden maximal als <em>background</em> bewertet.</li>
+                    <li>Bekannte AP-BSSIDs werden nicht mehr zusätzlich als Clients geführt.</li>
+                    <li>APs erhalten mit <span class="mono">ap_history.csv</span> eine persistente Historie über Neustarts hinweg.</li>
+                    <li>Clients erhalten mit <span class="mono">client_history.csv</span> ebenfalls eine persistente Historie; ein Neustart von <span class="mono">dronen-wifi</span> leert die Flask-Clientliste damit nicht mehr.</li>
+                    <li><span class="mono">clients.csv</span> bleibt die Sicht „seit letztem Sensorstart“, während <span class="mono">client_history.csv</span> die dauerhafte Sicht liefert.</li>
+                    <li>Seit WLAN V2.4 wird jeder erfolgreich besuchte Hopping-Kanal in <span class="mono">channel_activity.jsonl</span> protokolliert – auch bei <span class="mono">frames_total=0</span>. Dadurch ist „kein WLAN-Verkehr“ von „Kanal nicht beobachtet“ unterscheidbar.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header fw-semibold">5. Dynamischer UniFi-Client-Import</div>
+            <div class="card-body">
+                <p>
+                    Der UniFi Express 7 unter <span class="mono"><local-ip></span>
+                    liefert über die lokale Network API die aktuell verbundenen Clients
+                    der Site <span class="mono">Default</span>.
+                </p>
+
+                <p>
+                    Der Importer übernimmt ausschließlich Clients mit
+                    <span class="mono">type=WIRELESS</span> und schreibt sie nach
+                    <span class="mono">/opt/dronen-mon/config/unifi_clients.csv</span>.
+                    Zusätzlich werden aus den UniFi-Gerätestatistiken die aktuell aktiven
+                    AP-Radios mit Kanal, Bandbreite und Sendeleistung erfasst. Kabelgebundene
+                    Clients werden nicht in die WLAN-Known-Logik aufgenommen.
+                </p>
+
+                <ul>
+                    <li>API-Endpunkt: <span class="mono">/proxy/network/integration/v1/sites/&lt;siteId&gt;/clients</span></li>
+                    <li>Import-Intervall: alle 5 Minuten über systemd-Timer</li>
+                    <li>API-Key liegt separat in <span class="mono">config/unifi_api.key</span></li>
+                    <li><span class="mono">known_devices.csv</span> bleibt unverändert und bildet weiterhin die statische Known-Quelle.</li>
+                    <li>WLAN V2.x kombiniert statische Known-Devices und dynamische UniFi-WLAN-Clients.</li>
+                    <li>Die UniFi-Historie enthält zusätzlich den aktiven AP-Radio-Kontext. Damit ist unterscheidbar, ob auf einem Kanal ein eigener Client und/oder ein eigener AP aktiv war.</li>
+                    <li>Fehlender historischer AP-Kontext wird als unbekannt (<span class="mono">None</span>) behandelt und niemals als 0 interpretiert.</li>
+                    <li>Änderungen an <span class="mono">unifi_clients.csv</span> werden im laufenden WLAN-Monitor automatisch neu geladen; kein Sensor-Neustart erforderlich.</li>
+                </ul>
+
+                <p class="mb-0">
+                    Vorteil: aktuell verbundene eigene Geräte wie iPhones, Laptops,
+                    Tasmota, OctoPi oder das Ahoy/Hoymiles-Gateway werden automatisch
+                    aus der Kandidatenlogik herausgehalten.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">6. SDR-Erkennung</div>
+            <div class="card-body">
+                <p>
+                    Zwei RTL-SDRs überwachen getrennte Frequenzbereiche. Die Geräte werden
+                    über ihren physischen USB-Pfad aufgelöst, weil die Sticks keine nutzbare
+                    EEPROM-Seriennummer besitzen.
+                </p>
+
+                <h6>430–450 MHz</h6>
+                <p>
+                    Im 12-Stunden-Test wurden zahlreiche wiederkehrende lokale Dauersignale
+                    erkannt. V1.4 führte daher eine zweite persistente Lernschicht ein.
+                </p>
+
+                <p>Als persistent gelernt wurden u. a.:</p>
+                <div class="mono small mb-3">
+                    431.152 · 433.594 · 437.168 · 439.619 · 440.176 ·
+                    440.371 · 442.635 MHz
+                </div>
+
+                <h6>860–930 MHz</h6>
+                <p class="mb-0">
+                    Dieser Bereich war im bisherigen Dauerbetrieb deutlich ruhiger und
+                    erzeugte wesentlich weniger Ereignisse. Die hohe Empfindlichkeit für
+                    seltene Signale bleibt damit erhalten.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header fw-semibold">7. ADALM-Pluto & 2,4/5,8-GHz-Korrelation</div>
+            <div class="card-body">
+                <p>
+                    Der ADALM-Pluto Rev.C wurde auf den AD9361-kompatiblen Frequenzbereich erweitert
+                    und für passives Wideband-Monitoring eingebunden. Der Pluto sendet nicht aktiv.
+                    Die USB-URI wird dynamisch über <span class="mono">iio_info -s</span> ermittelt,
+                    damit wechselnde USB-Adressen nach Neustarts kein Problem darstellen.
+                </p>
+
+                <h6>Pluto-Monitor</h6>
+                <ul>
+                    <li>2,4-GHz-Zentren: <span class="mono">2407, 2427, 2447, 2467, 2477 MHz</span></li>
+                    <li>5,8-GHz-Zentren: <span class="mono">5735, 5755, 5775, 5795, 5815, 5835 MHz</span></li>
+                    <li>Sample Rate: <span class="mono">20 MHz</span></li>
+                    <li>Auswertung über FFT; DC-Bereich um die LO-Frequenz wird ausgeblendet.</li>
+                    <li>Messwert <span class="mono">peak_over_median_db</span> ist relativ und kein kalibrierter dBm-Wert.</li>
+                    <li>Ausgabe: <span class="mono">data/pluto/events/pluto_rf.jsonl</span></li>
+                </ul>
+
+                <h6>Pluto/WLAN-Correlator V2.6</h6>
+                <p>
+                    <span class="mono">pluto_wifi_correlate.py</span> arbeitet mit einem rollenden
+                    72-Stunden-Fenster. Pro Pluto-Scanmitte wird eine konservative P99-Schwelle aus
+                    Referenzfenster, aktuellem 2-Stunden-Fenster und dem gesamten 72-Stunden-Fenster
+                    gebildet. Nur darüber liegende RF-Ausreißer werden weiter klassifiziert und mit
+                    WLAN- sowie UniFi-Kontext korreliert.
+                </p>
+                <ul>
+                    <li>Belastbare Vergleichsperiode beginnt mit WLAN V2.4 und <span class="mono">channel_visited=true</span>.</li>
+                    <li>WLAN-Coverage wird pro Kanal geführt; 0 Frames gelten als echte Messung mit keiner beobachteten 802.11-Aktivität.</li>
+                    <li>2,4-GHz-Peaks werden auf die realen Kanäle 1–14 abgebildet; nicht überwachte Kanäle werden als <span class="mono">wifi_channel_not_observed</span> markiert.</li>
+                    <li>Starke zeitgleiche 802.11-Aktivität ergibt <span class="mono">wifi_explained</span>; mittlere Aktivität <span class="mono">wifi_uncertain</span>.</li>
+                    <li>Wiederkehrende enge Peaks werden als <span class="mono">recurrent_rf_background</span> erkannt.</li>
+                    <li>Breitere, über längere Zeit stabile RF-Bereiche werden als <span class="mono">recurrent_rf_region</span> markiert.</li>
+                    <li>Einzelne starke Peaks bei geringer oder keiner WLAN-Aktivität bleiben <span class="mono">non_wifi_rf_candidate</span>.</li>
+                    <li>UniFi-Client-Kontext: <span class="mono">unifi_clients_channel</span> zeigt, ob eigene Clients auf dem zugeordneten Kanal aktiv waren.</li>
+                    <li>UniFi-AP-Kontext: <span class="mono">unifi_ap_radios_channel</span> zeigt, ob ein eigener AP-Radio auf diesem Kanal aktiv war.</li>
+                    <li>Candidate Score 0–9: 3–4 <span class="mono">observe</span>, 5–6 <span class="mono">interesting</span>, ≥7 <span class="mono">candidate</span>. Der Score ist eine Priorisierung und keine Drohnen-Wahrscheinlichkeit.</li>
+                    <li>Die rechenintensive Clusterbildung für wiederkehrende Peaks/Regionen wurde in V2.6 auf lineares Arbeiten über sortierte Frequenzen optimiert.</li>
+                    <li>Der Correlator läuft alle 15 Minuten; ein typischer Lauf über das 72h-Fenster lag im Test bei rund 25 Sekunden statt zuvor mehreren Minuten.</li>
+                </ul>
+
+                <p class="mb-0">
+                    Aktuelle Erkenntnis: wiederkehrende 5,8-GHz-Treffer liegen unter anderem im
+                    Bereich um etwa 5739–5740 MHz sowie 5815–5820 MHz. Einzelne Treffer können
+                    zunächst hoch bewertet und durch die fortlaufend verbesserte Baseline später
+                    als Hintergrund zurückgestuft werden. Deshalb werden aktuelle Bewertung und
+                    Historie getrennt geführt. RF-Kandidaten sind ausdrücklich noch kein Drohnennachweis.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header fw-semibold">8. Persistent Learning</div>
+            <div class="card-body">
+                <p>
+                    Die ursprünglichen 1-Stunden-SDR-Baselines bleiben unverändert.
+                    Wiederkehrende Signale werden separat unter
+                    <span class="mono">data/sdr/persistent/</span> gelernt.
+                </p>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Aktuelle Lernregel</h6>
+                        <ul>
+                            <li>Frequenzcluster innerhalb ±150 kHz</li>
+                            <li>mindestens 3 unterschiedliche Sweeps</li>
+                            <li>Beobachtungszeit mindestens 5 Minuten</li>
+                            <li>Analyzer-Klasse <span class="mono">persistent</span></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Effekt</h6>
+                        <p>
+                            Nach dem Lernen verschwinden Dauersignale aus zukünftigen
+                            <span class="mono">rf_sweep_activity</span>-Events. Sporadische
+                            oder neue Signale bleiben sichtbar.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">9. Korrelation</div>
+            <div class="card-body">
+                <p>
+                    Der Correlator verbindet relevante WLAN-Ereignisse mit zeitnahen
+                    SDR-Sweeps. Das aktuelle Zeitfenster beträgt ±180 Sekunden.
+                </p>
+
+                <ul>
+                    <li>WLAN-RSSI-Grenze: mindestens −75 dBm</li>
+                    <li>Ein WLAN-Ereignis + ein SDR-Sweep ergibt höchstens eine Korrelation</li>
+                    <li>SDR-Persistent-Learning reduziert False Positives deutlich</li>
+                </ul>
+
+                <p class="mb-0">
+                    Die ersten High-Korrelationen wurden durch das eigene Ahoy/Hoymiles-
+                    Gateway in nur ca. 1 m Entfernung plus persistente 430-MHz-Signale
+                    verursacht. Das virtuelle Interface
+                    <span class="mono">xx:xx:xx:xx:xx:xx</span> wurde daher ausgeschlossen.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+        <div class="card h-100">
+            <div class="card-header fw-semibold">10. Remote ID</div>
+            <div class="card-body">
+                <p>
+                    WLAN V1.9 enthält einen separaten passiven Remote-ID-Decoder für
+                    ASD-STAN/OpenDroneID Vendor-Specific Information Elements.
+                </p>
+
+                <p>Unterstützte Nachrichten:</p>
+                <ul>
+                    <li>Basic ID</li>
+                    <li>Location</li>
+                    <li>Self ID</li>
+                    <li>System</li>
+                    <li>Operator ID</li>
+                    <li>Message Packs</li>
+                </ul>
+
+                <h6>False-Positive-Erkenntnisse</h6>
+                <p>
+                    Die OUI <span class="mono">50:6F:9A</span> wird auch von normalen
+                    Wi-Fi-Alliance-Funktionen verwendet. OUI allein ist daher kein
+                    Remote-ID-Nachweis.
+                </p>
+
+                <p class="mb-0">
+                    Decoder V1.2 akzeptiert nur noch strukturell und semantisch plausible
+                    Remote-ID-Nachrichten: exakte Standardlänge, gültige Textfelder sowie
+                    plausible Geo-Koordinaten. Ein Remote-ID-Treffer ist ein starker
+                    Protokollindikator, aber keine kryptographische Bestätigung der
+                    ausgesendeten Identität oder Position.
+                </p>
+
+                <hr>
+
+                <h6>Funktionsnachweis vom 24.09.2026</h6>
+                <p>
+                    Die Remote-ID-Kette wurde ohne Funkübertragung mit synthetischen Testdaten
+                    in drei Stufen geprüft. Die dabei verwendeten UAS-IDs waren reine Testwerte
+                    und stellen keine reale Detektion dar.
+                </p>
+                <ol class="mb-0">
+                    <li>
+                        <strong>Dashboard/Event-Pipeline:</strong>
+                        Ein markierter <span class="mono">remote_id_detected</span>-Testdatensatz
+                        wurde in <span class="mono">wifi_events.jsonl</span> geschrieben und
+                        anschließend über <span class="mono">/api/remote-id</span> sowie im
+                        Dashboard korrekt angezeigt.
+                    </li>
+                    <li>
+                        <strong>Decoder-Test:</strong>
+                        Ein synthetischer WLAN-Frame mit Vendor-Specific IE, OUI
+                        <span class="mono">FA:0B:BC</span> und einer formal gültigen
+                        25-Byte-Basic-ID wurde direkt an
+                        <span class="mono">decode_remote_id_packet()</span> übergeben.
+                        Ergebnis: genau eine Detection mit
+                        <span class="mono">decode_ok=true</span>,
+                        <span class="mono">message_type_name=basic_id</span> und korrekt
+                        extrahierter UAS-ID.
+                    </li>
+                    <li>
+                        <strong>End-to-End-Test:</strong>
+                        Derselbe synthetische Remote-ID-Frame wurde über die produktive
+                        Funktion <span class="mono">wifi_monitor.process_remote_id()</span>
+                        verarbeitet. Der Monitor erzeugte die erwartete
+                        <span class="mono">[REMOTE ID]</span>-Meldung, schrieb das Event nach
+                        <span class="mono">wifi_events.jsonl</span> und die Flask-API lieferte
+                        den Datensatz anschließend korrekt aus.
+                    </li>
+                </ol>
+                <p class="mt-3 mb-0">
+                    Damit ist die komplette Softwarekette vom empfangenen WLAN-Frame über
+                    Vendor-IE-Erkennung, Remote-ID-Decoder, Dedup-/Event-Logik und JSONL bis
+                    zum Flask-Dashboard funktional nachgewiesen. Nicht Bestandteil dieses
+                    Tests war der reale Funkempfang einer ausgesendeten Direct-Remote-ID-Nachricht.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header fw-semibold">11. Wichtige Dateien</div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Pfad</th><th>Inhalt</th></tr></thead>
+                        <tbody>
+                            <tr><td class="mono">/opt/dronen-mon/bin/wifi_monitor.py</td><td>WLAN Sensor V2.4</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/bin/remote_id_decoder.py</td><td>Remote-ID Decoder V1.2</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/bin/update_unifi_clients.py</td><td>UniFi Wireless-Client Import</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/bin/sdr_monitor.py</td><td>Dual-SDR Monitor V1.4</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/bin/event_correlator.py</td><td>WLAN/RTL-SDR Correlator V1.1</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/bin/pluto_monitor.py</td><td>ADALM-Pluto 2,4/5,8-GHz RF-Monitor</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/bin/pluto_wifi_correlate.py</td><td>Pluto/WLAN Correlator V2.6 · 72h Rolling Window · Hybrid-P99 · Candidate Score</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/bin/cleanup_history.py</td><td>Retention und gzip-Archivierung der Rohdaten</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/config/known_devices.csv</td><td>Statische eigene bekannte Geräte</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/config/unifi_clients.csv</td><td>Dynamisch importierte UniFi-WLAN-Clients</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/config/unifi.json</td><td>UniFi API-Konfiguration ohne API-Key</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/config/unifi_api.key</td><td>Lokaler UniFi API-Key, Rechte 600</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/config/ignore_bssid.txt</td><td>Explizit ignorierte BSSIDs</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/config/ignore_prefixes.txt</td><td>Ignorierte BSSID-Präfixe</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/data/wifi/ap_history.csv</td><td>Persistente AP-Historie</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/data/wifi/client_history.csv</td><td>Persistente WLAN-Client-Historie</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/data/wifi/clients.csv</td><td>Clients seit letztem WLAN-Sensorstart</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/data/wifi/wifi_events.jsonl</td><td>WLAN- und Remote-ID-Events</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/data/wifi/channel_activity.jsonl</td><td>WLAN-Kanalaktivität inkl. 0-Frame-Kanalbesuchen · aktive Retention 14 Tage</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/data/unifi/wireless_clients.jsonl</td><td>UniFi Client- und AP-Radio-Historie · aktive Retention 30 Tage</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/data/pluto/events/pluto_rf.jsonl</td><td>Pluto FFT-/RF-Messungen für 2,4 und 5,8 GHz · aktive Retention 14 Tage</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/data/pluto/candidates_current.json</td><td>Aktuell nach V2.6 noch gültige Observe+/Interesting/Candidate-Treffer</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/data/pluto/candidates.jsonl</td><td>Langfristige Candidate-Historie mit first/max/latest Score und aktuellem Status</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/data/archive/</td><td>gzip-komprimierte Rohdatenarchive; Archive werden 30 Tage gehalten</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/data/sdr/events/sdr_events.jsonl</td><td>SDR-Ereignisse</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/data/correlation/correlation_events.jsonl</td><td>Korrelationen</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header fw-semibold">12. Candidate-Persistenz & Retention</div>
+            <div class="card-body">
+                <p>
+                    Seit V2.5 werden aktuelle Bewertung und historische Beobachtung getrennt.
+                    Dadurch kann ein früher auffälliges Ereignis später korrekt als Hintergrund
+                    eingestuft werden, ohne dass die ursprüngliche Beobachtung verloren geht.
+                </p>
+                <ul>
+                    <li><span class="mono">candidates_current.json</span>: wird bei jedem Correlator-Lauf neu geschrieben und enthält nur aktuell gültige Treffer mit Score ≥3.</li>
+                    <li><span class="mono">candidates.jsonl</span>: dauerhafte Historie mit <span class="mono">first_score</span>, <span class="mono">max_score</span>, <span class="mono">latest_score</span>, <span class="mono">first_level</span>, <span class="mono">latest_level</span>, <span class="mono">last_evaluated</span> und <span class="mono">currently_candidate</span>.</li>
+                    <li>Das Dashboard/API liest den aktuellen Candidate-Zustand aus <span class="mono">candidates_current.json</span>.</li>
+                    <li>Täglicher Cleanup um 03:40 Uhr: Pluto- und WLAN-Rohdaten 14 Tage aktiv, UniFi-Historie 30 Tage aktiv.</li>
+                    <li>Aus der aktiven Retention fallende Rohdaten werden gzip-komprimiert unter <span class="mono">data/archive/</span> abgelegt; Archive werden nach 30 Tagen gelöscht.</li>
+                    <li>Während des Rewrites werden Pluto/WLAN kurz gestoppt; der Pluto-Correlator-Timer pausiert und wird danach wieder aktiviert.</li>
+                    <li>UniFi-History-Writer und Cleanup verwenden einen gemeinsamen Lock, um parallele Schreibzugriffe zu vermeiden.</li>
+                    <li><span class="mono">candidates.jsonl</span> und <span class="mono">candidates_current.json</span> werden vom Cleanup ausdrücklich nicht verändert.</li>
+                </ul>
+
+                <h6>Aktueller Stand / nächste Schritte</h6>
+                <ol class="mb-0">
+                    <li>System im 24/7-Betrieb weiter Daten sammeln lassen und Candidate-Cluster über mehrere Tage beobachten.</li>
+                    <li>Weiter beobachten, ob sich die 5,8-GHz-Bereiche um 5739–5740 MHz bzw. 5815–5820 MHz reproduzierbar zeigen.</li>
+                    <li>Einen kontrollierten Test mit einer tatsächlich Direct-Remote-ID-fähigen Drohne durchführen.</li>
+                    <li>Echte Remote-ID-Ereignisse anschließend in die Korrelation aufnehmen.</li>
+                    <li>Langzeitdaten zur weiteren Kalibrierung des WLAN-Scorings, der SDR-Persistent-Layer und der Pluto/WLAN-Korrelation verwenden.</li>
+                    <li>Cleanup später auf Streaming-Rewrite umstellen, falls der RAM-Verbrauch mit 14 Tagen Pluto-Rohdaten deutlich ansteigt.</li>
+                    <li>Dashboard später um Zeitreihen/Charts und bei validen Location-Nachrichten um Kartenansicht erweitern.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+[Unit]
+Description=Drohnen-Monitor Pluto 2.4/5.8 GHz RF Sensor
+
+[Service]
+Type=simple
+
+ExecStart=/opt/dronen-mon/bin/pluto_monitor.py \
+ --sample-rate 20000000 \
+ --capture-seconds 0.15 \
+ --sleep 0.20
+
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

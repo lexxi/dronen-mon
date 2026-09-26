@@ -1,0 +1,11 @@
+[Unit]
+Description=Drohnen-Monitor History Cleanup Timer
+
+[Timer]
+OnCalendar=*-*-* 03:40:00
+Persistent=true
+AccuracySec=5min
+Unit=dronen-history-cleanup.service
+
+[Install]
+WantedBy=timers.target

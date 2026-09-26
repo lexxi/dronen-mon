@@ -1,0 +1,15 @@
+[Unit]
+Description=Drohnen-Monitor Flask Web GUI
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/dronen-mon/web
+ExecStart=/opt/dronen-mon/web/venv/bin/gunicorn --workers 2 --bind 0.0.0.0:8080 app:app
+Restart=always
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target
