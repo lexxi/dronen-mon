@@ -453,6 +453,7 @@ Alle Daten werden von der Flask-GUI nur gelesen.</pre>
                             <tr><td class="mono">/opt/dronen-mon/bin/pluto_wifi_correlate.py</td><td>Pluto/WLAN Correlator V2.6 · 72h Rolling Window · Hybrid-P99 · Candidate Score</td></tr>
                             <tr><td class="mono">/opt/dronen-mon/bin/cleanup_history.py</td><td>Retention und gzip-Archivierung der Rohdaten</td></tr>
                             <tr><td class="mono">/opt/dronen-mon/bin/install_systemd.sh</td><td>Vergleicht Repo-Units mit /etc/systemd/system und installiert nur neue/geänderte Units</td></tr>
+                            <tr><td class="mono">/etc/default/dronen-mon</td><td>Runtime-Konfiguration für WLAN-Interface und physische SDR-USB-Pfade</td></tr>
                             <tr><td class="mono">/opt/dronen-mon/config/known_devices.csv</td><td>Statische eigene bekannte Geräte</td></tr>
                             <tr><td class="mono">/opt/dronen-mon/config/unifi_clients.csv</td><td>Dynamisch importierte UniFi-WLAN-Clients</td></tr>
                             <tr><td class="mono">/opt/dronen-mon/config/unifi.json</td><td>UniFi API-Konfiguration ohne API-Key</td></tr>
@@ -497,6 +498,23 @@ Alle Daten werden von der Flask-GUI nur gelesen.</pre>
                     <li>UniFi-History-Writer und Cleanup verwenden einen gemeinsamen Lock, um parallele Schreibzugriffe zu vermeiden.</li>
                     <li><span class="mono">candidates.jsonl</span> und <span class="mono">candidates_current.json</span> werden vom Cleanup ausdrücklich nicht verändert.</li>
                 </ul>
+
+                <h6>Runtime-Konfiguration</h6>
+                <p>
+                    Systemweite Hardware-/Interface-Zuordnungen liegen in
+                    <span class="mono">/etc/default/dronen-mon</span>. Die relevanten
+                    systemd-Units lesen diese Datei beim Start ein.
+                </p>
+                <pre class="mono">DRONEN_WIFI_INTERFACE=wlxfc221c201695
+SDR_430_USB_PATH=1-1.2
+SDR_860_USB_PATH=3-4</pre>
+                <p>
+                    Aktuelle Zuordnung: WLAN-Monitor auf
+                    <span class="mono">wlxfc221c201695</span>, RTL-SDR 430–450 MHz auf
+                    <span class="mono">1-1.2</span> und RTL-SDR 860–930 MHz auf
+                    <span class="mono">3-4</span>. Falls sich die physische USB-Verkabelung
+                    ändert, müssen die beiden SDR-Pfade entsprechend angepasst werden.
+                </p>
 
                 <h6>Deployment / systemd-Units</h6>
                 <p>
