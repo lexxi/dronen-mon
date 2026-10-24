@@ -452,6 +452,7 @@ Alle Daten werden von der Flask-GUI nur gelesen.</pre>
                             <tr><td class="mono">/opt/dronen-mon/bin/pluto_monitor.py</td><td>ADALM-Pluto 2,4/5,8-GHz RF-Monitor</td></tr>
                             <tr><td class="mono">/opt/dronen-mon/bin/pluto_wifi_correlate.py</td><td>Pluto/WLAN Correlator V2.6 · 72h Rolling Window · Hybrid-P99 · Candidate Score</td></tr>
                             <tr><td class="mono">/opt/dronen-mon/bin/cleanup_history.py</td><td>Retention und gzip-Archivierung der Rohdaten</td></tr>
+                            <tr><td class="mono">/opt/dronen-mon/bin/install_systemd.sh</td><td>Vergleicht Repo-Units mit /etc/systemd/system und installiert nur neue/geänderte Units</td></tr>
                             <tr><td class="mono">/opt/dronen-mon/config/known_devices.csv</td><td>Statische eigene bekannte Geräte</td></tr>
                             <tr><td class="mono">/opt/dronen-mon/config/unifi_clients.csv</td><td>Dynamisch importierte UniFi-WLAN-Clients</td></tr>
                             <tr><td class="mono">/opt/dronen-mon/config/unifi.json</td><td>UniFi API-Konfiguration ohne API-Key</td></tr>
@@ -496,6 +497,24 @@ Alle Daten werden von der Flask-GUI nur gelesen.</pre>
                     <li>UniFi-History-Writer und Cleanup verwenden einen gemeinsamen Lock, um parallele Schreibzugriffe zu vermeiden.</li>
                     <li><span class="mono">candidates.jsonl</span> und <span class="mono">candidates_current.json</span> werden vom Cleanup ausdrücklich nicht verändert.</li>
                 </ul>
+
+                <h6>Deployment / systemd-Units</h6>
+                <p>
+                    Die Dateien unter <span class="mono">systemd/</span> sind die versionierte Quelle.
+                    Installierte Units unter <span class="mono">/etc/systemd/system/</span> sind Kopien
+                    und werden durch <span class="mono">git pull</span> nicht automatisch aktualisiert.
+                </p>
+                <p>
+                    Nach Änderungen an systemd-Units bzw. nach einem Update kann daher
+                    <span class="mono">bin/install_systemd.sh</span> ausgeführt werden. Das Script
+                    vergleicht alle <span class="mono">dronen-*.service</span> und
+                    <span class="mono">dronen-*.timer</span>, kopiert nur fehlende oder geänderte
+                    Dateien und führt bei Änderungen <span class="mono">systemctl daemon-reload</span> aus.
+                    Dienste werden bewusst nicht automatisch neu gestartet.
+                </p>
+                <pre class="mono">cd /opt/dronen-mon
+git pull
+sudo bin/install_systemd.sh</pre>
 
                 <h6>Aktueller Stand / nächste Schritte</h6>
                 <ol class="mb-0">
